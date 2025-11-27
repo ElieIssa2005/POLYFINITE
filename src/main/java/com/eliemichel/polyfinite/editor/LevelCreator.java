@@ -985,7 +985,7 @@ public class LevelCreator {
 
         questsSection.getChildren().addAll(questsBox, addQuestButtonRow);
 
-        mainBox.getChildren().addAll(milestoneSection, goldSection, questsSection);
+        mainBox.getChildren().addAll(goldSection, questsSection);
         scrollPane.setContent(mainBox);
         root.setCenter(scrollPane);
 

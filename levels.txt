@@ -9,7 +9,7 @@ CHAPTER:1
 FILE:level_2.txt
 
 LEVEL:3
-NAME:name
+NAME:aaahh
 CHAPTER:777
 FILE:level_3.txt
 
