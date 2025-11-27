@@ -2,6 +2,7 @@ package com.eliemichel.polyfinite.game;
 
 import com.eliemichel.polyfinite.database.DBConnectMySQL;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 
 public class SaveSlot {
 
@@ -79,6 +80,20 @@ public class SaveSlot {
     }
 
     public void saveLevelProgress(int levelNumber, int wave, int score, boolean q1, boolean q2, boolean q3) {
+        saveLevelProgress(levelNumber, wave, score, 0, q1, q2, q3, null);
+    }
+
+    public void saveLevelProgress(int levelNumber, int wave, int score, int milestoneStarsEarned,
+                                  ArrayList<Quest> activeQuests, ArrayList<WaveMilestone> waveMilestones) {
+        boolean q1 = activeQuests != null && activeQuests.size() > 0 && activeQuests.get(0).isCompleted();
+        boolean q2 = activeQuests != null && activeQuests.size() > 1 && activeQuests.get(1).isCompleted();
+        boolean q3 = activeQuests != null && activeQuests.size() > 2 && activeQuests.get(2).isCompleted();
+
+        saveLevelProgress(levelNumber, wave, score, milestoneStarsEarned, q1, q2, q3, waveMilestones);
+    }
+
+    private void saveLevelProgress(int levelNumber, int wave, int score, int milestoneStarsEarned,
+                                   boolean q1, boolean q2, boolean q3, ArrayList<WaveMilestone> waveMilestones) {
         DBConnectMySQL connector = new DBConnectMySQL();
 
         if (!connector.isConnected()) {
@@ -87,47 +102,24 @@ public class SaveSlot {
         }
 
         try {
-            int starsEarned = (q1 ? 1 : 0) + (q2 ? 1 : 0) + (q3 ? 1 : 0);
+            int milestoneStars = calculateStarsForWave(wave, waveMilestones);
+            int starsEarned = Math.max(milestoneStarsEarned, milestoneStars);
 
-            String checkSql = "SELECT * FROM level_progress WHERE save_slot_id = " + slotNumber + " AND level_number = " + levelNumber;
-            ResultSet rs = connector.getStatement().executeQuery(checkSql);
+            String upsertSql = "INSERT INTO level_progress " +
+                    "(save_slot_id, level_number, best_wave, best_score, quest_1_completed, quest_2_completed, quest_3_completed, stars_earned, times_played) " +
+                    "VALUES (" + slotNumber + ", " + levelNumber + ", " + wave + ", " + score + ", " +
+                    (q1 ? 1 : 0) + ", " + (q2 ? 1 : 0) + ", " + (q3 ? 1 : 0) + ", " + starsEarned + ", 1) " +
+                    "ON DUPLICATE KEY UPDATE " +
+                    "best_wave = GREATEST(best_wave, VALUES(best_wave)), " +
+                    "best_score = GREATEST(best_score, VALUES(best_score)), " +
+                    "quest_1_completed = quest_1_completed OR VALUES(quest_1_completed), " +
+                    "quest_2_completed = quest_2_completed OR VALUES(quest_2_completed), " +
+                    "quest_3_completed = quest_3_completed OR VALUES(quest_3_completed), " +
+                    "stars_earned = GREATEST(stars_earned, VALUES(stars_earned)), " +
+                    "times_played = times_played + 1";
 
-            if (rs.next()) {
-                int oldBestWave = rs.getInt("best_wave");
-                int oldBestScore = rs.getInt("best_score");
-                boolean oldQ1 = rs.getBoolean("quest_1_completed");
-                boolean oldQ2 = rs.getBoolean("quest_2_completed");
-                boolean oldQ3 = rs.getBoolean("quest_3_completed");
-                int timesPlayed = rs.getInt("times_played");
-
-                int newBestWave = Math.max(oldBestWave, wave);
-                int newBestScore = Math.max(oldBestScore, score);
-                boolean newQ1 = oldQ1 || q1;
-                boolean newQ2 = oldQ2 || q2;
-                boolean newQ3 = oldQ3 || q3;
-                int newStars = (newQ1 ? 1 : 0) + (newQ2 ? 1 : 0) + (newQ3 ? 1 : 0);
-
-                String updateSql = "UPDATE level_progress SET " +
-                        "best_wave = " + newBestWave + ", " +
-                        "best_score = " + newBestScore + ", " +
-                        "quest_1_completed = " + newQ1 + ", " +
-                        "quest_2_completed = " + newQ2 + ", " +
-                        "quest_3_completed = " + newQ3 + ", " +
-                        "stars_earned = " + newStars + ", " +
-                        "times_played = " + (timesPlayed + 1) + " " +
-                        "WHERE save_slot_id = " + slotNumber + " AND level_number = " + levelNumber;
-
-                connector.getStatement().executeUpdate(updateSql);
-                System.out.println("Updated level progress: " + newStars + " stars");
-
-            } else {
-                String insertSql = "INSERT INTO level_progress " +
-                        "(save_slot_id, level_number, best_wave, best_score, quest_1_completed, quest_2_completed, quest_3_completed, stars_earned, times_played) " +
-                        "VALUES (" + slotNumber + ", " + levelNumber + ", " + wave + ", " + score + ", " + q1 + ", " + q2 + ", " + q3 + ", " + starsEarned + ", 1)";
-
-                connector.getStatement().executeUpdate(insertSql);
-                System.out.println("Created new level progress: " + starsEarned + " stars");
-            }
+            connector.getStatement().executeUpdate(upsertSql);
+            System.out.println("Saved level progress: " + starsEarned + " stars");
 
             String totalStarsSql = "SELECT SUM(stars_earned) as total FROM level_progress WHERE save_slot_id = " + slotNumber;
             ResultSet totalRs = connector.getStatement().executeQuery(totalStarsSql);
@@ -181,4 +173,18 @@ public class SaveSlot {
     }
 
     public int getGold() { return gold; }
+
+    private int calculateStarsForWave(int bestWave, ArrayList<WaveMilestone> waveMilestones) {
+        if (waveMilestones == null || waveMilestones.isEmpty()) {
+            return 0;
+        }
+
+        int stars = 0;
+        for (WaveMilestone milestone : waveMilestones) {
+            if (milestone.isReached(bestWave)) {
+                stars += milestone.getStarsReward();
+            }
+        }
+        return stars;
+    }
 }

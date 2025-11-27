@@ -5,6 +5,7 @@ import com.eliemichel.polyfinite.game.tiles.Tile;
 import com.eliemichel.polyfinite.game.towers.Tower;
 import com.eliemichel.polyfinite.ui.gameplay.*;
 import javafx.animation.AnimationTimer;
+import javafx.geometry.Insets;
 import javafx.scene.Group;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Button;
@@ -29,10 +30,16 @@ public class GameplayScreen {
     private GameRenderer renderer;
     private TowerPanelManager towerPanelManager;
     private QuestManager questManager;
+    private VBox questPanel;
 
     private ArrayList<Enemy> enemies;
     private ArrayList<Tower> towers;
     private ArrayList<Projectile> projectiles;
+
+    private ArrayList<WaveMilestone> waveMilestones;
+    private ArrayList<Integer> milestonesReached;
+    private int milestoneStarsEarned;
+    private int lastWaveChecked;
 
     // OPTIMIZATION: Reusable list to avoid garbage collection
     private ArrayList<Enemy> enemiesToRemove;
@@ -93,13 +100,19 @@ public class GameplayScreen {
                 tileSize
         );
 
+        waveMilestones = new ArrayList<>(levelLoader.getLevelData().getWaveMilestones());
+        milestonesReached = new ArrayList<>();
+        milestoneStarsEarned = 0;
+        lastWaveChecked = 0;
+
         // Initialize quest manager
         questManager = new QuestManager(levelInfo.getLevelNumber(), currentSave.getSlotNumber());
         questManager.initializeQuests(levelLoader.getLevelData().getQuestDefinitions());
         questManager.setOnQuestCompleted(() -> {
             System.out.println("A quest was completed!");
-            // Could update UI here
+            refreshQuestPanel();
         });
+        questManager.setOnQuestProgressChanged(this::refreshQuestPanel);
 
         // Set up skip bonus callback
         waveManager.setOnSkipBonus(() -> {
@@ -142,6 +155,7 @@ public class GameplayScreen {
         uiOverlay.setPickOnBounds(false);
         uiOverlay.setTop(topBar);
         uiOverlay.setBottom(bottomBar);
+        setupQuestPanel(uiOverlay);
 
         towerSelectionPanel = UIBuilder.createTowerSelectionPanel();
         towerPanelManager = new TowerPanelManager(towerSelectionPanel, towers, tileSize);
@@ -367,6 +381,7 @@ public class GameplayScreen {
         // PROFILE: WaveManager update
         long waveStart = System.nanoTime();
         waveManager.update(deltaTime);
+        checkWaveMilestones();
         long waveEnd = System.nanoTime();
 
         // PROFILE: State checks
@@ -441,17 +456,12 @@ public class GameplayScreen {
     private void showEndLevelScreen() {
         // Save quest progress
         questManager.onLevelEnd();
-        
-        // Get quest completion status for stars
-        boolean q1 = questManager.getQuest(0) != null && questManager.getQuest(0).isCompleted();
-        boolean q2 = questManager.getQuest(1) != null && questManager.getQuest(1).isCompleted();
-        boolean q3 = questManager.getQuest(2) != null && questManager.getQuest(2).isCompleted();
-        
+
         currentSave.saveLevelProgress(levelInfo.getLevelNumber(), waveManager.getCurrentWave(),
-                score, q1, q2, q3);
+                score, milestoneStarsEarned, questManager.getQuests(), waveMilestones);
 
         endLevelScreen = new EndLevelScreen(stage, currentSave, waveManager.getCurrentWave(),
-                waveManager.getTotalWaves(), score);
+                waveManager.getTotalWaves(), score, milestoneStarsEarned);
         root.getChildren().add(endLevelScreen.getOverlay());
     }
 
@@ -484,6 +494,77 @@ public class GameplayScreen {
     private void updateScoreLabel() {
         if (scoreLabel != null) {
             scoreLabel.setText("⭐ " + score);
+        }
+    }
+
+    private void setupQuestPanel(BorderPane uiOverlay) {
+        questPanel = new VBox(8);
+        questPanel.setPadding(new Insets(12));
+        questPanel.setMaxWidth(260);
+        questPanel.setStyle("-fx-background-color: rgba(0,0,0,0.6); -fx-border-color: #B388FF; -fx-border-width: 2; -fx-background-radius: 4; -fx-border-radius: 4;");
+        questPanel.setPickOnBounds(false);
+
+        refreshQuestPanel();
+
+        uiOverlay.setRight(questPanel);
+        BorderPane.setMargin(questPanel, new Insets(10, 20, 10, 10));
+    }
+
+    private void refreshQuestPanel() {
+        if (questPanel == null) {
+            return;
+        }
+
+        questPanel.getChildren().clear();
+
+        Label title = new Label("🎯 ACTIVE QUESTS");
+        title.setStyle("-fx-text-fill: #B388FF; -fx-font-size: 14px; -fx-font-weight: bold;");
+        questPanel.getChildren().add(title);
+
+        ArrayList<Quest> activeQuests = questManager != null ? questManager.getQuests() : new ArrayList<>();
+        if (activeQuests.isEmpty()) {
+            Label emptyLabel = new Label("No quests available");
+            emptyLabel.setStyle("-fx-text-fill: #AAAAAA; -fx-font-size: 12px;");
+            questPanel.getChildren().add(emptyLabel);
+            return;
+        }
+
+        int index = 1;
+        for (Quest quest : activeQuests) {
+            VBox questBox = new VBox(2);
+            questBox.setStyle("-fx-background-color: #1f1f1f; -fx-background-radius: 4; -fx-padding: 6;");
+
+            Label desc = new Label("Q" + index + ": " + quest.getDescription());
+            desc.setStyle("-fx-text-fill: " + (quest.isCompleted() ? "#00E676" : "white") + "; -fx-font-size: 12px;");
+
+            Label progress = new Label(quest.getProgressString());
+            progress.setStyle("-fx-text-fill: #AAAAAA; -fx-font-size: 11px;");
+
+            questBox.getChildren().addAll(desc, progress);
+            questPanel.getChildren().add(questBox);
+            index++;
+        }
+    }
+
+    private void checkWaveMilestones() {
+        if (waveMilestones == null || waveMilestones.isEmpty()) {
+            return;
+        }
+
+        int currentWave = waveManager.getCurrentWave();
+        if (currentWave <= lastWaveChecked) {
+            return;
+        }
+
+        lastWaveChecked = currentWave;
+        updateWaveLabel();
+
+        for (WaveMilestone milestone : waveMilestones) {
+            if (milestone.isReached(currentWave) && !milestonesReached.contains(milestone.getWave())) {
+                milestonesReached.add(milestone.getWave());
+                milestoneStarsEarned += milestone.getStarsReward();
+                System.out.println("Reached wave milestone " + milestone.getWave() + " (+" + milestone.getStarsReward() + " star)");
+            }
         }
     }
 
