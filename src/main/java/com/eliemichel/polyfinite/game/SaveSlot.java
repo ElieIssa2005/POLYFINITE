@@ -4,8 +4,6 @@ import com.eliemichel.polyfinite.database.DBConnectMySQL;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 
-import com.eliemichel.polyfinite.game.LevelData;
-
 public class SaveSlot {
 
     private int slotNumber;
@@ -105,7 +103,7 @@ public class SaveSlot {
 
         try {
             int milestoneStars = calculateStarsForWave(wave, waveMilestones);
-            int starsEarned = Math.max(milestoneStarsEarned, milestoneStars);
+            int starsEarned = Math.min(3, Math.max(milestoneStarsEarned, milestoneStars));
 
             String upsertSql = "INSERT INTO level_progress " +
                     "(save_slot_id, level_number, best_wave, best_score, quest_1_completed, quest_2_completed, quest_3_completed, stars_earned, times_played) " +
@@ -177,9 +175,7 @@ public class SaveSlot {
     public int getGold() { return gold; }
 
     private int calculateStarsForWave(int bestWave, ArrayList<WaveMilestone> waveMilestones) {
-        if (waveMilestones == null || waveMilestones.isEmpty()) {
-            waveMilestones = LevelData.createDefaultMilestones();
-        }
+        waveMilestones = WaveMilestone.normalize(waveMilestones);
 
         int stars = 0;
         for (WaveMilestone milestone : waveMilestones) {

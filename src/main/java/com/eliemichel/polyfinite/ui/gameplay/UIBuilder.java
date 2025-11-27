@@ -25,7 +25,7 @@ public class UIBuilder {
     }
 
     public static HBox createTopBar(Label livesLabel, Label goldLabel, Label waveLabel, Label scoreLabel,
-                                    Runnable onPause, int currentWave, int lives, int gold, int score) {
+                                    Runnable onPause, int currentWave, int lives, int gold, int score, javafx.scene.Node rightContent) {
         HBox topBar = new HBox();
         topBar.setPadding(new Insets(5, 15, 15, 15));
         topBar.setAlignment(Pos.TOP_LEFT);
@@ -70,9 +70,11 @@ public class UIBuilder {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        VBox questsBox = createQuestsBox();
-
-        topBar.getChildren().addAll(leftStats, spacer, questsBox);
+        if (rightContent != null) {
+            topBar.getChildren().addAll(leftStats, spacer, rightContent);
+        } else {
+            topBar.getChildren().addAll(leftStats, spacer);
+        }
 
         for (javafx.scene.Node node : topBar.getChildren()) {
             if (node instanceof Button || node instanceof Label) {
@@ -86,30 +88,6 @@ public class UIBuilder {
         }
 
         return topBar;
-    }
-
-    private static VBox createQuestsBox() {
-        VBox questsBox = new VBox(10);
-        questsBox.setPadding(new Insets(10, 15, 10, 15));
-        questsBox.setAlignment(Pos.TOP_LEFT);
-        questsBox.setStyle("-fx-background-color: #2a2a2a; -fx-background-radius: 5; " +
-                "-fx-border-color: #00E5FF; -fx-border-width: 1; -fx-border-radius: 5;");
-        questsBox.setPrefWidth(250);
-
-        Label questsHeader = new Label("Quests 0/3");
-        questsHeader.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: white;");
-
-        Label quest1 = new Label("☐ Survive 10 waves");
-        quest1.setStyle("-fx-font-size: 14px; -fx-text-fill: #AAAAAA;");
-
-        Label quest2 = new Label("☐ Don't lose any lives");
-        quest2.setStyle("-fx-font-size: 14px; -fx-text-fill: #AAAAAA;");
-
-        Label quest3 = new Label("☐ Earn 1000 points");
-        quest3.setStyle("-fx-font-size: 14px; -fx-text-fill: #AAAAAA;");
-
-        questsBox.getChildren().addAll(questsHeader, quest1, quest2, quest3);
-        return questsBox;
     }
 
     public static HBox createBottomBar(Button startWaveButton, Runnable onStartWave, Runnable onSpeedToggle) {

@@ -25,8 +25,8 @@ public class LevelInfo {
         this.highScore = 0;
         this.quests = new ArrayList<>();
         this.enemyTypes = new ArrayList<>();
-        this.waveMilestones = new ArrayList<>(LevelData.createDefaultMilestones());
-        this.maxStars = calculateMaxStars();
+        this.waveMilestones = WaveMilestone.normalize(LevelData.createDefaultMilestones());
+        this.maxStars = 3;
         this.milestonesCompleted = 0;
         this.unlocked = false;
     }
@@ -91,12 +91,8 @@ public class LevelInfo {
     public ArrayList<WaveMilestone> getWaveMilestones() { return waveMilestones; }
 
     public void setWaveMilestones(ArrayList<WaveMilestone> waveMilestones) {
-        if (waveMilestones == null || waveMilestones.isEmpty()) {
-            this.waveMilestones = new ArrayList<>(LevelData.createDefaultMilestones());
-        } else {
-            this.waveMilestones = new ArrayList<>(waveMilestones);
-        }
-        this.maxStars = calculateMaxStars();
+        this.waveMilestones = WaveMilestone.normalize(waveMilestones);
+        this.maxStars = 3;
         refreshMilestoneCompletion();
     }
 
@@ -112,7 +108,7 @@ public class LevelInfo {
             }
         }
 
-        this.starsEarned = Math.min(Math.max(this.starsEarned, Math.max(starsEarned, earnedFromWave)), calculateMaxStars());
+        this.starsEarned = Math.min(Math.max(this.starsEarned, Math.max(starsEarned, earnedFromWave)), 3);
         refreshMilestoneCompletion();
     }
 
@@ -142,16 +138,6 @@ public class LevelInfo {
             }
         }
         milestonesCompleted = completed;
-        maxStars = calculateMaxStars();
-    }
-
-    private int calculateMaxStars() {
-        int total = 0;
-        if (waveMilestones != null) {
-            for (WaveMilestone milestone : waveMilestones) {
-                total += milestone.getStarsReward();
-            }
-        }
-        return total;
+        maxStars = 3;
     }
 }
