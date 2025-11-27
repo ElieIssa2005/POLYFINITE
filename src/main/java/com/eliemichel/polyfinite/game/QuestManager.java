@@ -10,6 +10,8 @@ import java.util.ArrayList;
  */
 public class QuestManager {
 
+    private static final int ACTIVE_QUEST_LIMIT = 3;
+
     private ArrayList<Quest> quests; // Active quests for this run
     private ArrayList<Quest> allQuests;
     private int levelNumber;
@@ -97,7 +99,7 @@ public class QuestManager {
             if (!quest.isCompleted()) {
                 quests.add(quest);
             }
-            if (quests.size() >= 3) {
+            if (quests.size() >= ACTIVE_QUEST_LIMIT) {
                 break; // Only 3 active quests per run
             }
         }

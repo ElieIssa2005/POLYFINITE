@@ -275,7 +275,7 @@ public class MapScreen {
         chapterLevelLabel.setLayoutY(150);
 
         ArrayList<WaveMilestone> milestones = loadWaveMilestones(level.filename);
-        int maxStars = getMaxStars(milestones);
+        int maxStars = 3;
         if (unlocked && !completed) {
             HBox starsBox = createStarsDisplay(0, maxStars);
             starsBox.setLayoutX(115);
@@ -422,11 +422,9 @@ public class MapScreen {
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("WAVE_MILESTONE:")) {
                     String[] parts = line.substring(15).split(":");
-                    if (parts.length == 2) {
+                    if (parts.length >= 1) {
                         try {
-                            milestones.add(new WaveMilestone(
-                                    Integer.parseInt(parts[0].trim()),
-                                    Integer.parseInt(parts[1].trim())));
+                            milestones.add(new WaveMilestone(Integer.parseInt(parts[0].trim())));
                         } catch (NumberFormatException ignored) {
                         }
                     }
@@ -438,19 +436,7 @@ public class MapScreen {
             System.out.println("Error loading milestones for " + filename + ": " + e.getMessage());
         }
 
-        if (milestones.isEmpty()) {
-            com.eliemichel.polyfinite.game.LevelData temp = new com.eliemichel.polyfinite.game.LevelData();
-            milestones.addAll(temp.getWaveMilestones());
-        }
-        return milestones;
-    }
-
-    private int getMaxStars(ArrayList<WaveMilestone> milestones) {
-        int total = 0;
-        for (WaveMilestone milestone : milestones) {
-            total += milestone.getStarsReward();
-        }
-        return total == 0 ? 3 : total;
+        return WaveMilestone.normalize(milestones);
     }
 
     private void playLevel(LevelData level) {

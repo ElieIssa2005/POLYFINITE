@@ -6,6 +6,7 @@ import com.eliemichel.polyfinite.game.towers.Tower;
 import com.eliemichel.polyfinite.ui.gameplay.*;
 import javafx.animation.AnimationTimer;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Button;
@@ -58,6 +59,8 @@ public class GameplayScreen {
     private Label waveLabel;
     private Label scoreLabel;
     private Button startWaveButton;
+    private ArrayList<Label> starTrackerIcons;
+    private Label nextStarLabel;
 
     private VBox towerSelectionPanel;
     private Group canvasGroup;
@@ -100,7 +103,7 @@ public class GameplayScreen {
                 tileSize
         );
 
-        waveMilestones = new ArrayList<>(levelLoader.getLevelData().getWaveMilestones());
+        waveMilestones = WaveMilestone.normalize(levelLoader.getLevelData().getWaveMilestones());
         levelInfo.setWaveMilestones(new ArrayList<>(waveMilestones));
         milestonesReached = new ArrayList<>();
         milestoneStarsEarned = 0;
@@ -145,7 +148,7 @@ public class GameplayScreen {
         startWaveButton = new Button();
 
         HBox topBar = UIBuilder.createTopBar(livesLabel, paperMoneyLabel, waveLabel, scoreLabel,
-                this::togglePause, waveManager.getCurrentWave(), lives, paperMoney, score);
+                this::togglePause, waveManager.getCurrentWave(), lives, paperMoney, score, createStarTracker());
         topBar.setPickOnBounds(false);
 
         HBox bottomBar = UIBuilder.createBottomBar(startWaveButton, this::startNextWave, this::toggleSpeed);
@@ -475,6 +478,7 @@ public class GameplayScreen {
         updateWaveLabel();
         updateScoreLabel();
         updateStartWaveButton();
+        updateStarTracker();
     }
 
     private void updateLivesLabel() {
@@ -498,6 +502,62 @@ public class GameplayScreen {
     private void updateScoreLabel() {
         if (scoreLabel != null) {
             scoreLabel.setText("⭐ " + score);
+        }
+    }
+
+    private VBox createStarTracker() {
+        VBox tracker = new VBox(6);
+        tracker.setPadding(new Insets(8, 12, 8, 12));
+        tracker.setAlignment(Pos.CENTER_LEFT);
+        tracker.setStyle("-fx-background-color: #1f1f1f; -fx-border-color: #FFD700; -fx-border-width: 1; -fx-background-radius: 4; -fx-border-radius: 4;");
+
+        Label title = new Label("⭐ Star Tracker");
+        title.setStyle("-fx-text-fill: #FFD700; -fx-font-size: 14px; -fx-font-weight: bold;");
+
+        HBox starsRow = new HBox(6);
+        starsRow.setAlignment(Pos.CENTER_LEFT);
+        starTrackerIcons = new ArrayList<>();
+        for (int i = 0; i < waveMilestones.size(); i++) {
+            Label starIcon = new Label("☆ W" + waveMilestones.get(i).getWave());
+            starIcon.setStyle("-fx-text-fill: #AAAAAA; -fx-font-size: 12px;");
+            starTrackerIcons.add(starIcon);
+            starsRow.getChildren().add(starIcon);
+        }
+
+        nextStarLabel = new Label();
+        nextStarLabel.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 12px;");
+
+        tracker.getChildren().addAll(title, starsRow, nextStarLabel);
+        updateStarTracker();
+        return tracker;
+    }
+
+    private void updateStarTracker() {
+        if (starTrackerIcons == null || waveMilestones == null || waveManager == null) {
+            return;
+        }
+
+        int currentWave = waveManager.getCurrentWave();
+        for (int i = 0; i < waveMilestones.size() && i < starTrackerIcons.size(); i++) {
+            WaveMilestone milestone = waveMilestones.get(i);
+            Label icon = starTrackerIcons.get(i);
+            boolean reached = milestone.isReached(currentWave);
+            icon.setText((reached ? "⭐ " : "☆ ") + "W" + milestone.getWave());
+            icon.setStyle("-fx-text-fill: " + (reached ? "#00E676" : "#AAAAAA") + "; -fx-font-size: 12px; -fx-font-weight: " + (reached ? "bold" : "normal") + ";");
+        }
+
+        WaveMilestone next = null;
+        for (WaveMilestone milestone : waveMilestones) {
+            if (!milestone.isReached(currentWave)) {
+                next = milestone;
+                break;
+            }
+        }
+
+        if (next != null) {
+            nextStarLabel.setText("Next star at wave " + next.getWave() + " (current: " + currentWave + ")");
+        } else {
+            nextStarLabel.setText("All 3 stars earned!");
         }
     }
 
@@ -562,12 +622,14 @@ public class GameplayScreen {
 
         lastWaveChecked = currentWave;
         updateWaveLabel();
+        updateStarTracker();
 
         for (WaveMilestone milestone : waveMilestones) {
             if (milestone.isReached(currentWave) && !milestonesReached.contains(milestone.getWave())) {
                 milestonesReached.add(milestone.getWave());
-                milestoneStarsEarned += milestone.getStarsReward();
+                milestoneStarsEarned = Math.min(3, milestoneStarsEarned + milestone.getStarsReward());
                 System.out.println("Reached wave milestone " + milestone.getWave() + " (+" + milestone.getStarsReward() + " star)");
+                updateStarTracker();
             }
         }
     }
