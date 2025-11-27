@@ -459,6 +459,14 @@ public class MapScreen {
         com.eliemichel.polyfinite.game.LevelInfo levelInfo = new com.eliemichel.polyfinite.game.LevelInfo(level.number, level.name);
         levelInfo.setUnlocked(true);
 
+        ArrayList<WaveMilestone> milestones = loadWaveMilestones(level.filename);
+        levelInfo.setWaveMilestones(milestones);
+
+        LevelProgressData progress = levelProgressMap.get(level.number);
+        if (progress != null) {
+            levelInfo.updateProgress(progress.bestWave, progress.bestScore, progress.starsEarned);
+        }
+
         GameplayScreen gameplayScreen = new GameplayScreen(stage, levelInfo, currentSave);
         gameplayScreen.show();
     }

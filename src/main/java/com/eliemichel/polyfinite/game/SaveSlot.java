@@ -4,6 +4,8 @@ import com.eliemichel.polyfinite.database.DBConnectMySQL;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 
+import com.eliemichel.polyfinite.game.LevelData;
+
 public class SaveSlot {
 
     private int slotNumber;
@@ -176,7 +178,7 @@ public class SaveSlot {
 
     private int calculateStarsForWave(int bestWave, ArrayList<WaveMilestone> waveMilestones) {
         if (waveMilestones == null || waveMilestones.isEmpty()) {
-            return 0;
+            waveMilestones = LevelData.createDefaultMilestones();
         }
 
         int stars = 0;
