@@ -2,8 +2,6 @@ package com.eliemichel.polyfinite.game;
 
 import java.util.ArrayList;
 
-import com.eliemichel.polyfinite.game.LevelData;
-
 public class LevelInfo {
     private int levelNumber;
     private String levelName;
@@ -25,7 +23,7 @@ public class LevelInfo {
         this.highScore = 0;
         this.quests = new ArrayList<>();
         this.enemyTypes = new ArrayList<>();
-        this.waveMilestones = new ArrayList<>(LevelData.createDefaultMilestones());
+        this.waveMilestones = new ArrayList<>();
         this.maxStars = calculateMaxStars();
         this.milestonesCompleted = 0;
         this.unlocked = false;
@@ -91,11 +89,7 @@ public class LevelInfo {
     public ArrayList<WaveMilestone> getWaveMilestones() { return waveMilestones; }
 
     public void setWaveMilestones(ArrayList<WaveMilestone> waveMilestones) {
-        if (waveMilestones == null || waveMilestones.isEmpty()) {
-            this.waveMilestones = new ArrayList<>(LevelData.createDefaultMilestones());
-        } else {
-            this.waveMilestones = new ArrayList<>(waveMilestones);
-        }
+        this.waveMilestones = waveMilestones == null ? new ArrayList<>() : new ArrayList<>(waveMilestones);
         this.maxStars = calculateMaxStars();
         refreshMilestoneCompletion();
     }

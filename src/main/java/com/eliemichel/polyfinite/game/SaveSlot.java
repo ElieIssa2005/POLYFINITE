@@ -177,8 +177,8 @@ public class SaveSlot {
     public int getGold() { return gold; }
 
     private int calculateStarsForWave(int bestWave, ArrayList<WaveMilestone> waveMilestones) {
-        if (waveMilestones == null || waveMilestones.isEmpty()) {
-            waveMilestones = LevelData.createDefaultMilestones();
+        if (waveMilestones == null) {
+            waveMilestones = new ArrayList<>();
         }
 
         int stars = 0;
