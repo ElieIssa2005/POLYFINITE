@@ -101,6 +101,7 @@ public class GameplayScreen {
         );
 
         waveMilestones = new ArrayList<>(levelLoader.getLevelData().getWaveMilestones());
+        levelInfo.setWaveMilestones(new ArrayList<>(waveMilestones));
         milestonesReached = new ArrayList<>();
         milestoneStarsEarned = 0;
         lastWaveChecked = 0;
@@ -457,7 +458,10 @@ public class GameplayScreen {
         // Save quest progress
         questManager.onLevelEnd();
 
-        currentSave.saveLevelProgress(levelInfo.getLevelNumber(), waveManager.getCurrentWave(),
+        int finalWave = waveManager.getCurrentWave();
+        levelInfo.updateProgress(finalWave, score, milestoneStarsEarned);
+
+        currentSave.saveLevelProgress(levelInfo.getLevelNumber(), finalWave,
                 score, milestoneStarsEarned, questManager.getQuests(), waveMilestones);
 
         endLevelScreen = new EndLevelScreen(stage, currentSave, waveManager.getCurrentWave(),

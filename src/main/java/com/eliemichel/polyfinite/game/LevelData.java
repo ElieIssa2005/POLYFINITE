@@ -58,7 +58,7 @@ public class LevelData {
         this.goldDropChance = 0.05; // 5% default
 
         // Default milestone settings
-        this.waveMilestones = getDefaultMilestones();
+        this.waveMilestones = new ArrayList<>();
     }
 
     public LevelData(int gridWidth, int gridHeight) {
@@ -90,7 +90,7 @@ public class LevelData {
         this.goldDropChance = 0.05; // 5% default
 
         // Default milestone settings
-        this.waveMilestones = getDefaultMilestones();
+        this.waveMilestones = new ArrayList<>();
     }
 
     public String getLevelName() {
@@ -246,7 +246,11 @@ public class LevelData {
     }
 
     public void setWaveMilestones(ArrayList<WaveMilestone> waveMilestones) {
-        this.waveMilestones = waveMilestones;
+        if (waveMilestones == null) {
+            this.waveMilestones = new ArrayList<>();
+            return;
+        }
+        this.waveMilestones = new ArrayList<>(waveMilestones);
     }
 
     public void addWaveMilestone(WaveMilestone milestone) {
@@ -256,11 +260,21 @@ public class LevelData {
         this.waveMilestones.add(milestone);
     }
 
-    private ArrayList<WaveMilestone> getDefaultMilestones() {
+    public static ArrayList<WaveMilestone> createDefaultMilestones() {
         ArrayList<WaveMilestone> defaults = new ArrayList<>();
-        defaults.add(new WaveMilestone(5, 1));
         defaults.add(new WaveMilestone(10, 1));
         defaults.add(new WaveMilestone(20, 1));
+        defaults.add(new WaveMilestone(30, 1));
         return defaults;
+    }
+
+    public int getMaxStars() {
+        int total = 0;
+        if (waveMilestones != null) {
+            for (WaveMilestone milestone : waveMilestones) {
+                total += milestone.getStarsReward();
+            }
+        }
+        return total;
     }
 }

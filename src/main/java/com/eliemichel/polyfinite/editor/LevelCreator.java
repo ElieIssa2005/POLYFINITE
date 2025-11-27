@@ -62,8 +62,7 @@ public class LevelCreator {
     private VBox questsBox;
     private ArrayList<VBox> questRows;
     private TextField goldDropChanceField;
-    private VBox milestoneBox;
-    private ArrayList<HBox> milestoneRows;
+    private TextField milestoneField;
 
     public LevelCreator(Stage stage, ArrayList<ChapterData> chapters, ArrayList<LevelMetadata> levels, LevelEditor mainEditor) {
         this.stage = stage;
@@ -73,7 +72,6 @@ public class LevelCreator {
         this.isEditMode = false;
         this.weightRows = new ArrayList<>();
         this.questRows = new ArrayList<>();
-        this.milestoneRows = new ArrayList<>();
     }
 
     public void start() {
@@ -576,25 +574,19 @@ public class LevelCreator {
         mainBox.setAlignment(Pos.TOP_CENTER);
 
         // Milestone Section
-        VBox milestoneSection = createSection("WAVE MILESTONES (Stars granted by reaching waves)");
-        milestoneBox = new VBox(10);
-        milestoneRows = new ArrayList<>();
+        VBox milestoneSection = createSection("STAR MILESTONES (Enter waves for star rewards)");
+        Label milestoneLabel = new Label("Stars Milestone:");
+        milestoneLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
 
-        if (levelData.getWaveMilestones().isEmpty()) {
-            levelData.addWaveMilestone(new WaveMilestone(10, 1));
-            levelData.addWaveMilestone(new WaveMilestone(20, 1));
-            levelData.addWaveMilestone(new WaveMilestone(30, 1));
-        }
+        milestoneField = new TextField();
+        milestoneField.setPrefWidth(320);
+        milestoneField.setPromptText("e.g., 10,20,30");
+        milestoneField.setText(formatMilestones(levelData.getWaveMilestones()));
 
-        for (WaveMilestone milestone : levelData.getWaveMilestones()) {
-            addMilestoneRow(milestone.getWave(), milestone.getStarsReward());
-        }
+        Label milestoneHint = new Label("Enter three comma-separated wave numbers. Each listed wave grants 1 star.");
+        milestoneHint.setStyle("-fx-text-fill: #888888; -fx-font-size: 12px;");
 
-        Button addMilestoneButton = new Button("+ Add Milestone");
-        addMilestoneButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
-        addMilestoneButton.setOnAction(e -> addMilestoneRow(10, 1));
-
-        milestoneSection.getChildren().addAll(milestoneBox, addMilestoneButton);
+        milestoneSection.getChildren().addAll(milestoneLabel, milestoneField, milestoneHint);
 
         // Spawn Density Section
         VBox densitySection = createSection("SPAWN DENSITY");
@@ -710,6 +702,7 @@ public class LevelCreator {
         weightsSection.getChildren().addAll(enemyWeightsBox, addButtonRow);
 
         mainBox.getChildren().addAll(
+                milestoneSection,
                 densitySection, difficultySection, enemyCountSection,
                 interWaveSection, weightsSection
         );
@@ -820,6 +813,61 @@ public class LevelCreator {
                 totalWeightLabel.setStyle("-fx-text-fill: #f44336; -fx-font-size: 14px; -fx-font-weight: bold;");
             }
         }
+    }
+
+    private String formatMilestones(ArrayList<WaveMilestone> milestones) {
+        if (milestones == null || milestones.isEmpty()) {
+            return "";
+        }
+
+        ArrayList<WaveMilestone> sorted = new ArrayList<>(milestones);
+        sorted.sort(Comparator.comparingInt(WaveMilestone::getWave));
+
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < sorted.size(); i++) {
+            if (i > 0) {
+                builder.append(",");
+            }
+            builder.append(sorted.get(i).getWave());
+        }
+        return builder.toString();
+    }
+
+    private ArrayList<WaveMilestone> parseMilestonesFromField() {
+        String text = milestoneField.getText() != null ? milestoneField.getText().trim() : "";
+        if (text.isEmpty()) {
+            showError("Please enter three wave milestones (e.g., 10,20,30)");
+            return null;
+        }
+
+        String[] parts = text.split(",");
+        ArrayList<WaveMilestone> milestones = new ArrayList<>();
+
+        try {
+            for (String part : parts) {
+                String trimmed = part.trim();
+                if (trimmed.isEmpty()) {
+                    continue;
+                }
+                int wave = Integer.parseInt(trimmed);
+                if (wave <= 0) {
+                    showError("Milestone wave numbers must be positive integers!");
+                    return null;
+                }
+                milestones.add(new WaveMilestone(wave, 1));
+            }
+        } catch (NumberFormatException e) {
+            showError("Invalid milestone list. Use comma-separated numbers like 10,20,30");
+            return null;
+        }
+
+        if (milestones.size() != 3) {
+            showError("Please enter exactly three wave milestones (e.g., 10,20,30)");
+            return null;
+        }
+
+        milestones.sort(Comparator.comparingInt(WaveMilestone::getWave));
+        return milestones;
     }
 
     private void applyExistingWaveSettings() {
@@ -1103,33 +1151,6 @@ public class LevelCreator {
         updateQuestCountLabel();
     }
 
-    private void addMilestoneRow(int wave, int stars) {
-        HBox row = new HBox(10);
-        row.setAlignment(Pos.CENTER_LEFT);
-
-        Label waveLabel = new Label("Wave:");
-        waveLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
-        TextField waveField = new TextField(String.valueOf(wave));
-        waveField.setPrefWidth(80);
-
-        Label starLabel = new Label("Stars:");
-        starLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
-        TextField starField = new TextField(String.valueOf(stars));
-        starField.setPrefWidth(80);
-
-        Button removeButton = new Button("Remove");
-        removeButton.setStyle("-fx-background-color: #e53935; -fx-text-fill: white;");
-        removeButton.setOnAction(e -> {
-            milestoneBox.getChildren().remove(row);
-            milestoneRows.remove(row);
-        });
-
-        row.getChildren().addAll(waveLabel, waveField, starLabel, starField, removeButton);
-
-        milestoneRows.add(row);
-        milestoneBox.getChildren().add(row);
-    }
-
     private String getQuestTypeDisplayName(QuestType type) {
         switch (type) {
             case DESTROY_ENEMIES: return "Destroy Enemies";
@@ -1187,28 +1208,10 @@ public class LevelCreator {
                 return false;
             }
 
-            // Parse milestones
-            ArrayList<WaveMilestone> milestones = new ArrayList<>();
-            for (HBox row : milestoneRows) {
-                TextField waveField = (TextField) row.getChildren().get(1);
-                TextField starField = (TextField) row.getChildren().get(3);
-
-                int wave = Integer.parseInt(waveField.getText().trim());
-                int stars = Integer.parseInt(starField.getText().trim());
-
-                if (wave <= 0) {
-                    showError("Milestone wave must be at least 1!");
-                    return false;
-                }
-                if (stars <= 0) {
-                    showError("Stars must be at least 1 per milestone!");
-                    return false;
-                }
-
-                milestones.add(new WaveMilestone(wave, stars));
+            ArrayList<WaveMilestone> milestones = parseMilestonesFromField();
+            if (milestones == null) {
+                return false;
             }
-
-            milestones.sort(Comparator.comparingInt(WaveMilestone::getWave));
 
             // Parse quests
             ArrayList<QuestDefinition> questDefs = new ArrayList<>();
