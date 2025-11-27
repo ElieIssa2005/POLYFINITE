@@ -16,8 +16,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 
-import com.eliemichel.polyfinite.game.*;
-import com.eliemichel.polyfinite.game.tiles.*;
+import com.eliemichel.polyfinite.domain.enemies.EnemyWeight;
+import com.eliemichel.polyfinite.domain.level.LevelData;
+import com.eliemichel.polyfinite.domain.level.SpawnDensity;
+import com.eliemichel.polyfinite.domain.level.WaveMilestone;
+import com.eliemichel.polyfinite.domain.quests.QuestDefinition;
+import com.eliemichel.polyfinite.domain.tiles.*;
 
 public class LevelCreator {
 
