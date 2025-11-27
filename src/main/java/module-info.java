@@ -1,6 +1,7 @@
 module com.eliemichel.polyfinite {
     requires javafx.controls;
     requires javafx.graphics;
+    requires javafx.fxml;
     requires com.google.gson;
     requires java.sql;
     requires javafx.media;

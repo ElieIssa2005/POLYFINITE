@@ -10,16 +10,19 @@ import java.util.ArrayList;
  */
 public class QuestManager {
 
-    private ArrayList<Quest> quests;
+    private ArrayList<Quest> quests; // Active quests for this run
+    private ArrayList<Quest> allQuests;
     private int levelNumber;
     private int saveSlotId;
     private PlayerCurrencies playerCurrencies;
 
     // Callback for when a quest is completed
     private Runnable onQuestCompleted;
+    private Runnable onQuestProgressChanged;
 
     public QuestManager(int levelNumber, int saveSlotId) {
         this.quests = new ArrayList<>();
+        this.allQuests = new ArrayList<>();
         this.levelNumber = levelNumber;
         this.saveSlotId = saveSlotId;
         this.playerCurrencies = PlayerCurrencies.getInstance();
@@ -28,19 +31,21 @@ public class QuestManager {
     // Initialize quests from level data
     public void initializeQuests(ArrayList<QuestDefinition> questDefinitions) {
         quests.clear();
+        allQuests.clear();
 
         for (int i = 0; i < questDefinitions.size(); i++) {
             QuestDefinition def = questDefinitions.get(i);
             Quest quest = def.createQuest(levelNumber, i);
             if (quest != null) {
-                quests.add(quest);
+                allQuests.add(quest);
             }
         }
 
         // Load saved progress from database
         loadQuestProgress();
+        selectActiveQuests();
 
-        System.out.println("Initialized " + quests.size() + " quests for level " + levelNumber);
+        System.out.println("Initialized " + quests.size() + " active quests for level " + levelNumber);
     }
 
     // Load quest progress from database
@@ -66,7 +71,7 @@ public class QuestManager {
                 boolean rewardGranted = rs.getBoolean("reward_granted");
 
                 // Find matching quest and restore progress
-                for (Quest quest : quests) {
+                for (Quest quest : allQuests) {
                     if (quest.getQuestId().equals(questId)) {
                         quest.setCurrentProgress(progress);
                         quest.setCompleted(completed);
@@ -85,6 +90,19 @@ public class QuestManager {
         }
     }
 
+    private void selectActiveQuests() {
+        quests.clear();
+
+        for (Quest quest : allQuests) {
+            if (!quest.isCompleted()) {
+                quests.add(quest);
+            }
+            if (quests.size() >= 3) {
+                break; // Only 3 active quests per run
+            }
+        }
+    }
+
     // Save quest progress to database
     public void saveQuestProgress() {
         DBConnectMySQL db = new DBConnectMySQL();
@@ -95,10 +113,10 @@ public class QuestManager {
         }
 
         try {
-            for (Quest quest : quests) {
+            for (Quest quest : allQuests) {
                 // Check if record exists
                 String checkSql = "SELECT id FROM quest_progress WHERE save_slot_id = " + saveSlotId +
-                                 " AND level_number = " + levelNumber + 
+                                 " AND level_number = " + levelNumber +
                                  " AND quest_id = '" + quest.getQuestId() + "'";
 
                 ResultSet rs = db.getStatement().executeQuery(checkSql);
@@ -107,8 +125,8 @@ public class QuestManager {
                     // Update existing record
                     String updateSql = "UPDATE quest_progress SET " +
                                       "current_progress = " + quest.getCurrentProgress() + ", " +
-                                      "completed = " + quest.isCompleted() + ", " +
-                                      "reward_granted = " + quest.isRewardGranted() + " " +
+                                      "completed = " + (quest.isCompleted() ? 1 : 0) + ", " +
+                                      "reward_granted = " + (quest.isRewardGranted() ? 1 : 0) + " " +
                                       "WHERE save_slot_id = " + saveSlotId +
                                       " AND level_number = " + levelNumber +
                                       " AND quest_id = '" + quest.getQuestId() + "'";
@@ -118,8 +136,8 @@ public class QuestManager {
                     String insertSql = "INSERT INTO quest_progress " +
                                       "(save_slot_id, level_number, quest_id, current_progress, completed, reward_granted) " +
                                       "VALUES (" + saveSlotId + ", " + levelNumber + ", '" + quest.getQuestId() + "', " +
-                                      quest.getCurrentProgress() + ", " + quest.isCompleted() + ", " + 
-                                      quest.isRewardGranted() + ")";
+                                      quest.getCurrentProgress() + ", " + (quest.isCompleted() ? 1 : 0) + ", " +
+                                      (quest.isRewardGranted() ? 1 : 0) + ")";
                     db.getStatement().executeUpdate(insertSql);
                 }
             }
@@ -170,12 +188,18 @@ public class QuestManager {
     private void processEvent(QuestEvent event) {
         for (Quest quest : quests) {
             if (!quest.isCompleted()) {
+                int beforeProgress = quest.getCurrentProgress();
                 boolean wasCompleted = quest.isCompleted();
                 quest.updateProgress(event);
 
                 // Check if quest just completed
                 if (!wasCompleted && quest.isCompleted()) {
                     handleQuestCompletion(quest);
+                }
+
+                if ((quest.getCurrentProgress() != beforeProgress || quest.isCompleted() != wasCompleted)
+                        && onQuestProgressChanged != null) {
+                    onQuestProgressChanged.run();
                 }
             }
         }
@@ -203,12 +227,20 @@ public class QuestManager {
         if (onQuestCompleted != null) {
             onQuestCompleted.run();
         }
+
+        if (onQuestProgressChanged != null) {
+            onQuestProgressChanged.run();
+        }
     }
 
     // ==================== GETTERS & UTILITIES ====================
 
     public ArrayList<Quest> getQuests() {
         return quests;
+    }
+
+    public ArrayList<Quest> getAllQuests() {
+        return allQuests;
     }
 
     public Quest getQuest(int index) {
@@ -233,8 +265,8 @@ public class QuestManager {
     }
 
     public int getStarsEarned() {
-        // Stars = completed quests (max 3 typically)
-        return Math.min(3, getCompletedQuestCount());
+        // Stars are no longer granted from quests. Milestone stars are handled in GameplayScreen/SaveSlot.
+        return 0;
     }
 
     public boolean allQuestsCompleted() {
@@ -248,6 +280,10 @@ public class QuestManager {
 
     public void setOnQuestCompleted(Runnable callback) {
         this.onQuestCompleted = callback;
+    }
+
+    public void setOnQuestProgressChanged(Runnable onQuestProgressChanged) {
+        this.onQuestProgressChanged = onQuestProgressChanged;
     }
 
     // Called when level ends - save final progress

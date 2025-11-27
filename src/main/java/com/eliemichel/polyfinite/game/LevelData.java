@@ -13,6 +13,9 @@ public class LevelData {
     private double mapNodeX;
     private double mapNodeY;
 
+    // Wave milestone star rewards
+    private ArrayList<WaveMilestone> waveMilestones;
+
     // Wave system settings
     private ArrayList<EnemyWeight> enemyWeights;
     private SpawnDensity spawnDensity;
@@ -53,6 +56,9 @@ public class LevelData {
         // Default quest settings
         this.questDefinitions = new ArrayList<>();
         this.goldDropChance = 0.05; // 5% default
+
+        // Default milestone settings
+        this.waveMilestones = getDefaultMilestones();
     }
 
     public LevelData(int gridWidth, int gridHeight) {
@@ -82,6 +88,9 @@ public class LevelData {
         // Default quest settings
         this.questDefinitions = new ArrayList<>();
         this.goldDropChance = 0.05; // 5% default
+
+        // Default milestone settings
+        this.waveMilestones = getDefaultMilestones();
     }
 
     public String getLevelName() {
@@ -229,5 +238,29 @@ public class LevelData {
 
     public void setGoldDropChance(double goldDropChance) {
         this.goldDropChance = goldDropChance;
+    }
+
+    // Milestones
+    public ArrayList<WaveMilestone> getWaveMilestones() {
+        return waveMilestones;
+    }
+
+    public void setWaveMilestones(ArrayList<WaveMilestone> waveMilestones) {
+        this.waveMilestones = waveMilestones;
+    }
+
+    public void addWaveMilestone(WaveMilestone milestone) {
+        if (this.waveMilestones == null) {
+            this.waveMilestones = new ArrayList<>();
+        }
+        this.waveMilestones.add(milestone);
+    }
+
+    private ArrayList<WaveMilestone> getDefaultMilestones() {
+        ArrayList<WaveMilestone> defaults = new ArrayList<>();
+        defaults.add(new WaveMilestone(5, 1));
+        defaults.add(new WaveMilestone(10, 1));
+        defaults.add(new WaveMilestone(20, 1));
+        return defaults;
     }
 }
