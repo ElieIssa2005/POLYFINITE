@@ -20,6 +20,8 @@ public class LevelCard {
     private HBox starsBox;
     private Label waveValueLabel;
     private Label scoreValueLabel;
+    private ProgressBar milestoneProgressBar;
+    private HBox milestoneLabelsBox;
 
     public LevelCard(LevelInfo levelInfo, SaveSlot currentSave) {
         this.levelInfo = levelInfo;
@@ -106,20 +108,20 @@ public class LevelCard {
         Label milestonesTitle = new Label("📈 WAVE MILESTONES");
         milestonesTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #B388FF;");
 
-        ProgressBar progressBar = new ProgressBar();
-        progressBar.setPrefWidth(270);
+        milestoneProgressBar = new ProgressBar();
+        milestoneProgressBar.setPrefWidth(270);
         int milestoneCount = levelInfo.getWaveMilestones().size();
-        progressBar.setProgress(milestoneCount == 0 ? 0 : (double) levelInfo.getMilestonesCompleted() / milestoneCount);
-        progressBar.setStyle("-fx-accent: #00E676;");
+        milestoneProgressBar.setProgress(milestoneCount == 0 ? 0 : (double) levelInfo.getMilestonesCompleted() / milestoneCount);
+        milestoneProgressBar.setStyle("-fx-accent: #00E676;");
 
-        HBox milestonesLabels = new HBox(10);
+        milestoneLabelsBox = new HBox(10);
         for (WaveMilestone milestone : levelInfo.getWaveMilestones()) {
             Label ml = new Label("W" + milestone.getWave());
             ml.setStyle("-fx-font-size: 9px; -fx-text-fill: #666666;");
-            milestonesLabels.getChildren().add(ml);
+            milestoneLabelsBox.getChildren().add(ml);
         }
 
-        milestonesBox.getChildren().addAll(milestonesTitle, progressBar, milestonesLabels);
+        milestonesBox.getChildren().addAll(milestonesTitle, milestoneProgressBar, milestoneLabelsBox);
 
         VBox questsBox = new VBox(3);
         questsBox.setPadding(new Insets(5, 0, 5, 0));
@@ -253,6 +255,18 @@ public class LevelCard {
         }
         if (scoreValueLabel != null) {
             scoreValueLabel.setText("High Score: " + levelInfo.getHighScore());
+        }
+        if (milestoneProgressBar != null) {
+            int milestoneCount = levelInfo.getWaveMilestones().size();
+            milestoneProgressBar.setProgress(milestoneCount == 0 ? 0 : (double) levelInfo.getMilestonesCompleted() / milestoneCount);
+        }
+        if (milestoneLabelsBox != null) {
+            milestoneLabelsBox.getChildren().clear();
+            for (WaveMilestone milestone : levelInfo.getWaveMilestones()) {
+                Label ml = new Label("W" + milestone.getWave());
+                ml.setStyle("-fx-font-size: 9px; -fx-text-fill: #666666;");
+                milestoneLabelsBox.getChildren().add(ml);
+            }
         }
     }
 }
