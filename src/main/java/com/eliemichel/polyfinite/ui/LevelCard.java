@@ -10,12 +10,16 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import com.eliemichel.polyfinite.game.LevelInfo;
 import com.eliemichel.polyfinite.game.Quest;
+import com.eliemichel.polyfinite.game.WaveMilestone;
 
 public class LevelCard {
 
     private VBox card;
     private LevelInfo levelInfo;
     private SaveSlot currentSave;
+    private HBox starsBox;
+    private Label waveValueLabel;
+    private Label scoreValueLabel;
 
     public LevelCard(LevelInfo levelInfo, SaveSlot currentSave) {
         this.levelInfo = levelInfo;
@@ -59,7 +63,7 @@ public class LevelCard {
         Label levelLabel = new Label("LEVEL " + levelInfo.getLevelNumber() + ": " + levelInfo.getLevelName().toUpperCase());
         levelLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #00E5FF;");
 
-        HBox starsBox = createStarsDisplay();
+        starsBox = createStarsDisplay();
 
         HBox.setHgrow(levelLabel, javafx.scene.layout.Priority.ALWAYS);
         headerBox.getChildren().addAll(levelLabel, starsBox);
@@ -72,13 +76,13 @@ public class LevelCard {
         Label recordsTitle = new Label("📊 PERSONAL RECORDS");
         recordsTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #00E5FF;");
 
-        Label waveLabel = new Label("Best Wave: " + levelInfo.getBestWave());
-        waveLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #AAAAAA;");
+        waveValueLabel = new Label("Best Wave: " + levelInfo.getBestWave());
+        waveValueLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #AAAAAA;");
 
-        Label scoreLabel = new Label("High Score: " + levelInfo.getHighScore());
-        scoreLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #AAAAAA;");
+        scoreValueLabel = new Label("High Score: " + levelInfo.getHighScore());
+        scoreValueLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #AAAAAA;");
 
-        recordsBox.getChildren().addAll(recordsTitle, waveLabel, scoreLabel);
+        recordsBox.getChildren().addAll(recordsTitle, waveValueLabel, scoreValueLabel);
 
         HBox enemyBox = new HBox(8);
         enemyBox.setAlignment(Pos.CENTER_LEFT);
@@ -104,12 +108,13 @@ public class LevelCard {
 
         ProgressBar progressBar = new ProgressBar();
         progressBar.setPrefWidth(270);
-        progressBar.setProgress((double) levelInfo.getMilestonesCompleted() / levelInfo.getWaveMilestones().length);
+        int milestoneCount = levelInfo.getWaveMilestones().size();
+        progressBar.setProgress(milestoneCount == 0 ? 0 : (double) levelInfo.getMilestonesCompleted() / milestoneCount);
         progressBar.setStyle("-fx-accent: #00E676;");
 
         HBox milestonesLabels = new HBox(10);
-        for (int milestone : levelInfo.getWaveMilestones()) {
-            Label ml = new Label("W" + milestone);
+        for (WaveMilestone milestone : levelInfo.getWaveMilestones()) {
+            Label ml = new Label("W" + milestone.getWave());
             ml.setStyle("-fx-font-size: 9px; -fx-text-fill: #666666;");
             milestonesLabels.getChildren().add(ml);
         }
@@ -226,5 +231,28 @@ public class LevelCard {
 
     public VBox getCard() {
         return card;
+    }
+
+    public void refresh() {
+        if (levelInfo == null || card == null) {
+            return;
+        }
+
+        if (starsBox != null) {
+            starsBox.getChildren().clear();
+            for (int i = 0; i < levelInfo.getMaxStars(); i++) {
+                Label star = new Label(i < levelInfo.getStarsEarned() ? "⭐" : "☆");
+                star.setStyle("-fx-font-size: 14px; " +
+                        (i < levelInfo.getStarsEarned() ? "-fx-effect: dropshadow(gaussian, #FFD700, 5, 0.8, 0, 0);" : ""));
+                starsBox.getChildren().add(star);
+            }
+        }
+
+        if (waveValueLabel != null) {
+            waveValueLabel.setText("Best Wave: " + levelInfo.getBestWave());
+        }
+        if (scoreValueLabel != null) {
+            scoreValueLabel.setText("High Score: " + levelInfo.getHighScore());
+        }
     }
 }

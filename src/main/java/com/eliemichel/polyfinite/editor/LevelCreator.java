@@ -14,6 +14,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 import com.eliemichel.polyfinite.game.*;
 import com.eliemichel.polyfinite.game.tiles.*;
@@ -61,6 +62,8 @@ public class LevelCreator {
     private VBox questsBox;
     private ArrayList<VBox> questRows;
     private TextField goldDropChanceField;
+    private VBox milestoneBox;
+    private ArrayList<HBox> milestoneRows;
 
     public LevelCreator(Stage stage, ArrayList<ChapterData> chapters, ArrayList<LevelMetadata> levels, LevelEditor mainEditor) {
         this.stage = stage;
@@ -70,6 +73,7 @@ public class LevelCreator {
         this.isEditMode = false;
         this.weightRows = new ArrayList<>();
         this.questRows = new ArrayList<>();
+        this.milestoneRows = new ArrayList<>();
     }
 
     public void start() {
@@ -106,6 +110,7 @@ public class LevelCreator {
             // Quest settings
             double goldDropChance = 0.05;
             ArrayList<QuestDefinition> questDefinitions = new ArrayList<>();
+            ArrayList<WaveMilestone> waveMilestones = new ArrayList<>();
 
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("LEVEL_NAME:")) {
@@ -138,6 +143,16 @@ public class LevelCreator {
                     if (quest != null) {
                         questDefinitions.add(quest);
                     }
+                } else if (line.startsWith("WAVE_MILESTONE:")) {
+                    String[] parts = line.substring(15).split(":");
+                    if (parts.length == 2) {
+                        try {
+                            waveMilestones.add(new WaveMilestone(
+                                    Integer.parseInt(parts[0].trim()),
+                                    Integer.parseInt(parts[1].trim())));
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
                 } else if (line.equals("GRID:")) {
                     break;
                 }
@@ -160,6 +175,9 @@ public class LevelCreator {
             levelData.setGoldDropChance(goldDropChance);
             if (!questDefinitions.isEmpty()) {
                 levelData.setQuestDefinitions(questDefinitions);
+            }
+            if (!waveMilestones.isEmpty()) {
+                levelData.setWaveMilestones(waveMilestones);
             }
 
             // Load grid
@@ -556,6 +574,27 @@ public class LevelCreator {
         VBox mainBox = new VBox(20);
         mainBox.setPadding(new Insets(30));
         mainBox.setAlignment(Pos.TOP_CENTER);
+
+        // Milestone Section
+        VBox milestoneSection = createSection("WAVE MILESTONES (Stars granted by reaching waves)");
+        milestoneBox = new VBox(10);
+        milestoneRows = new ArrayList<>();
+
+        if (levelData.getWaveMilestones().isEmpty()) {
+            levelData.addWaveMilestone(new WaveMilestone(10, 1));
+            levelData.addWaveMilestone(new WaveMilestone(20, 1));
+            levelData.addWaveMilestone(new WaveMilestone(30, 1));
+        }
+
+        for (WaveMilestone milestone : levelData.getWaveMilestones()) {
+            addMilestoneRow(milestone.getWave(), milestone.getStarsReward());
+        }
+
+        Button addMilestoneButton = new Button("+ Add Milestone");
+        addMilestoneButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
+        addMilestoneButton.setOnAction(e -> addMilestoneRow(10, 1));
+
+        milestoneSection.getChildren().addAll(milestoneBox, addMilestoneButton);
 
         // Spawn Density Section
         VBox densitySection = createSection("SPAWN DENSITY");
@@ -1064,6 +1103,33 @@ public class LevelCreator {
         updateQuestCountLabel();
     }
 
+    private void addMilestoneRow(int wave, int stars) {
+        HBox row = new HBox(10);
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        Label waveLabel = new Label("Wave:");
+        waveLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        TextField waveField = new TextField(String.valueOf(wave));
+        waveField.setPrefWidth(80);
+
+        Label starLabel = new Label("Stars:");
+        starLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        TextField starField = new TextField(String.valueOf(stars));
+        starField.setPrefWidth(80);
+
+        Button removeButton = new Button("Remove");
+        removeButton.setStyle("-fx-background-color: #e53935; -fx-text-fill: white;");
+        removeButton.setOnAction(e -> {
+            milestoneBox.getChildren().remove(row);
+            milestoneRows.remove(row);
+        });
+
+        row.getChildren().addAll(waveLabel, waveField, starLabel, starField, removeButton);
+
+        milestoneRows.add(row);
+        milestoneBox.getChildren().add(row);
+    }
+
     private String getQuestTypeDisplayName(QuestType type) {
         switch (type) {
             case DESTROY_ENEMIES: return "Destroy Enemies";
@@ -1121,6 +1187,29 @@ public class LevelCreator {
                 return false;
             }
 
+            // Parse milestones
+            ArrayList<WaveMilestone> milestones = new ArrayList<>();
+            for (HBox row : milestoneRows) {
+                TextField waveField = (TextField) row.getChildren().get(1);
+                TextField starField = (TextField) row.getChildren().get(3);
+
+                int wave = Integer.parseInt(waveField.getText().trim());
+                int stars = Integer.parseInt(starField.getText().trim());
+
+                if (wave <= 0) {
+                    showError("Milestone wave must be at least 1!");
+                    return false;
+                }
+                if (stars <= 0) {
+                    showError("Stars must be at least 1 per milestone!");
+                    return false;
+                }
+
+                milestones.add(new WaveMilestone(wave, stars));
+            }
+
+            milestones.sort(Comparator.comparingInt(WaveMilestone::getWave));
+
             // Parse quests
             ArrayList<QuestDefinition> questDefs = new ArrayList<>();
 
@@ -1162,6 +1251,11 @@ public class LevelCreator {
             // Apply settings
             levelData.setGoldDropChance(goldChance);
             levelData.setQuestDefinitions(questDefs);
+            if (milestones.isEmpty()) {
+                levelData.setWaveMilestones(new ArrayList<>());
+            } else {
+                levelData.setWaveMilestones(milestones);
+            }
 
             return true;
 
@@ -1203,6 +1297,9 @@ public class LevelCreator {
 
             // Quest settings
             writer.write("GOLD_DROP_CHANCE: " + levelData.getGoldDropChance() + "\n");
+            for (WaveMilestone milestone : levelData.getWaveMilestones()) {
+                writer.write("WAVE_MILESTONE:" + milestone.getWave() + ":" + milestone.getStarsReward() + "\n");
+            }
             for (QuestDefinition quest : levelData.getQuestDefinitions()) {
                 writer.write("QUEST:" + quest.toFileString() + "\n");
             }
