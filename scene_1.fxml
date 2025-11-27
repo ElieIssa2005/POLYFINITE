@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<Scene xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1">
+    <AnchorPane prefHeight="1080.0" prefWidth="1920.0" style="-fx-background-color: black;">
+      <children>
+         <Button layoutX="48.0" layoutY="40.0" mnemonicParsing="false" prefHeight="77.0" prefWidth="116.0" text="VFX - OFF" />
+         <Button layoutX="222.0" layoutY="40.0" mnemonicParsing="false" prefHeight="78.0" prefWidth="116.0" text="MUSIC - OFF" />
+      </children></AnchorPane>
+</Scene>
