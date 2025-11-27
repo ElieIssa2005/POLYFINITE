@@ -713,8 +713,40 @@ public class LevelCreator {
 
         weightsSection.getChildren().addAll(enemyWeightsBox, addButtonRow);
 
+        // Milestone Section
+        VBox milestoneSection = createSection("STAR MILESTONES (reach these waves to earn stars)");
+        milestoneBox = new VBox(10);
+        milestoneFields = new ArrayList<>();
+
+        Label milestoneHint = new Label("Each level has exactly 3 stars. Set the wave for each star below.");
+        milestoneHint.setStyle("-fx-text-fill: #AAAAAA; -fx-font-size: 12px;");
+        milestoneBox.getChildren().add(milestoneHint);
+
+        ArrayList<WaveMilestone> normalizedMilestones = WaveMilestone.normalize(levelData.getWaveMilestones());
+        levelData.setWaveMilestones(normalizedMilestones);
+
+        for (int i = 0; i < 3; i++) {
+            WaveMilestone milestone = normalizedMilestones.get(i);
+
+            HBox row = new HBox(10);
+            row.setAlignment(Pos.CENTER_LEFT);
+
+            Label label = new Label("Star " + (i + 1) + " wave:");
+            label.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+            label.setPrefWidth(120);
+
+            TextField waveField = new TextField(String.valueOf(milestone.getWave()));
+            waveField.setPrefWidth(100);
+            milestoneFields.add(waveField);
+
+            row.getChildren().addAll(label, waveField);
+            milestoneBox.getChildren().add(row);
+        }
+
+        milestoneSection.getChildren().addAll(milestoneBox);
+
         mainBox.getChildren().addAll(
-                densitySection, difficultySection, enemyCountSection,
+                milestoneSection, densitySection, difficultySection, enemyCountSection,
                 interWaveSection, weightsSection
         );
 
