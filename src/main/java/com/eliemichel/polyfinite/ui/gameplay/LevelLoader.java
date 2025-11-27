@@ -5,6 +5,7 @@ import com.eliemichel.polyfinite.game.LevelData;
 import com.eliemichel.polyfinite.game.QuestDefinition;
 import com.eliemichel.polyfinite.game.SpawnDensity;
 import com.eliemichel.polyfinite.game.WaveData;
+import com.eliemichel.polyfinite.game.WaveMilestone;
 import com.eliemichel.polyfinite.game.tiles.*;
 
 import java.io.BufferedReader;
@@ -47,6 +48,9 @@ public class LevelLoader {
             double goldDropChance = 0.05;
             ArrayList<QuestDefinition> questDefinitions = new ArrayList<>();
 
+            // Wave milestones
+            ArrayList<WaveMilestone> waveMilestones = new ArrayList<>();
+
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("LEVEL_NAME:")) {
                     levelName = line.substring(11).trim();
@@ -82,6 +86,17 @@ public class LevelLoader {
                     if (quest != null) {
                         questDefinitions.add(quest);
                     }
+                } else if (line.startsWith("WAVE_MILESTONE:")) {
+                    // Format: WAVE_MILESTONE:wave:stars
+                    String[] parts = line.substring(15).split(":");
+                    if (parts.length == 2) {
+                        try {
+                            int wave = Integer.parseInt(parts[0].trim());
+                            int stars = Integer.parseInt(parts[1].trim());
+                            waveMilestones.add(new WaveMilestone(wave, stars));
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
                 } else if (line.equals("GRID:")) {
                     break;
                 }
@@ -108,6 +123,11 @@ public class LevelLoader {
             levelData.setGoldDropChance(goldDropChance);
             if (!questDefinitions.isEmpty()) {
                 levelData.setQuestDefinitions(questDefinitions);
+            }
+
+            // Apply milestones (keep defaults if none provided)
+            if (!waveMilestones.isEmpty()) {
+                levelData.setWaveMilestones(waveMilestones);
             }
 
             // Load grid

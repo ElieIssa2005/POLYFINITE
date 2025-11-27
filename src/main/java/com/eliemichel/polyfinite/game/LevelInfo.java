@@ -11,7 +11,7 @@ public class LevelInfo {
     private int highScore;
     private ArrayList<Quest> quests;
     private ArrayList<String> enemyTypes;
-    private int[] waveMilestones;
+    private ArrayList<WaveMilestone> waveMilestones;
     private int milestonesCompleted;
     private boolean unlocked;
 
@@ -24,7 +24,11 @@ public class LevelInfo {
         this.highScore = 0;
         this.quests = new ArrayList<>();
         this.enemyTypes = new ArrayList<>();
-        this.waveMilestones = new int[]{5, 10, 20};
+        this.waveMilestones = new ArrayList<>();
+        this.waveMilestones.add(new WaveMilestone(5, 1));
+        this.waveMilestones.add(new WaveMilestone(10, 1));
+        this.waveMilestones.add(new WaveMilestone(20, 1));
+        this.maxStars = calculateMaxStars();
         this.milestonesCompleted = 0;
         this.unlocked = false;
     }
@@ -57,12 +61,17 @@ public class LevelInfo {
         return maxStars;
     }
 
+    public void setMaxStars(int maxStars) {
+        this.maxStars = maxStars;
+    }
+
     public int getBestWave() {
         return bestWave;
     }
 
     public void setBestWave(int bestWave) {
         this.bestWave = bestWave;
+        refreshMilestoneCompletion();
     }
 
     public int getHighScore() {
@@ -81,17 +90,17 @@ public class LevelInfo {
         return enemyTypes;
     }
 
-    public int[] getWaveMilestones() {
-        return waveMilestones;
+    public ArrayList<WaveMilestone> getWaveMilestones() { return waveMilestones; }
+
+    public void setWaveMilestones(ArrayList<WaveMilestone> waveMilestones) {
+        this.waveMilestones = waveMilestones;
+        this.maxStars = calculateMaxStars();
+        refreshMilestoneCompletion();
     }
 
-    public int getMilestonesCompleted() {
-        return milestonesCompleted;
-    }
+    public int getMilestonesCompleted() { return milestonesCompleted; }
 
-    public void setMilestonesCompleted(int milestonesCompleted) {
-        this.milestonesCompleted = milestonesCompleted;
-    }
+    public void setMilestonesCompleted(int milestonesCompleted) { this.milestonesCompleted = milestonesCompleted; }
 
     public boolean isUnlocked() {
         return unlocked;
@@ -99,5 +108,32 @@ public class LevelInfo {
 
     public void setUnlocked(boolean unlocked) {
         this.unlocked = unlocked;
+    }
+
+    public void refreshMilestoneCompletion() {
+        if (waveMilestones == null || waveMilestones.isEmpty()) {
+            milestonesCompleted = 0;
+            maxStars = 0;
+            return;
+        }
+
+        int completed = 0;
+        for (WaveMilestone milestone : waveMilestones) {
+            if (milestone.isReached(bestWave)) {
+                completed++;
+            }
+        }
+        milestonesCompleted = completed;
+        maxStars = calculateMaxStars();
+    }
+
+    private int calculateMaxStars() {
+        int total = 0;
+        if (waveMilestones != null) {
+            for (WaveMilestone milestone : waveMilestones) {
+                total += milestone.getStarsReward();
+            }
+        }
+        return total;
     }
 }

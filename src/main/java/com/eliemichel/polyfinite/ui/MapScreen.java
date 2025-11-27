@@ -2,6 +2,7 @@ package com.eliemichel.polyfinite.ui;
 
 import com.eliemichel.polyfinite.database.DBConnectMySQL;
 import com.eliemichel.polyfinite.game.SaveSlot;
+import com.eliemichel.polyfinite.game.WaveMilestone;
 import com.eliemichel.polyfinite.utils.AtlasManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -249,7 +250,9 @@ public class MapScreen {
         card.setPrefHeight(180);
 
         boolean unlocked = isLevelUnlocked(level.number);
-        boolean completed = isLevelCompleted(level.number);
+        LevelProgressData progress = levelProgressMap.get(level.number);
+        boolean completed = progress != null && progress.starsEarned > 0;
+        boolean hasProgress = progress != null;
 
         Pane contentPane = new Pane();
         contentPane.setPrefSize(180, 180);
@@ -271,45 +274,27 @@ public class MapScreen {
         chapterLevelLabel.setLayoutX(10);
         chapterLevelLabel.setLayoutY(150);
 
+        ArrayList<WaveMilestone> milestones = loadWaveMilestones(level.filename);
+        int maxStars = getMaxStars(milestones);
         if (unlocked && !completed) {
-            HBox starsBox = createStarsDisplay(0);
+            HBox starsBox = createStarsDisplay(0, maxStars);
             starsBox.setLayoutX(115);
             starsBox.setLayoutY(145);
             contentPane.getChildren().add(starsBox);
-        } else if (completed) {
-            LevelProgressData progress = levelProgressMap.get(level.number);
+            if (hasProgress && progress != null) {
+                attachProgressBadges(contentPane, progress.bestWave, progress.bestScore);
+            }
+        } else if (completed || hasProgress) {
             int stars = progress != null ? progress.starsEarned : 0;
             int wave = progress != null ? progress.bestWave : 0;
             int score = progress != null ? progress.bestScore : 0;
 
-            HBox starsBox = createStarsDisplay(stars);
+            HBox starsBox = createStarsDisplay(stars, maxStars);
             starsBox.setLayoutX(115);
             starsBox.setLayoutY(145);
 
-            HBox waveBox = new HBox(5);
-            waveBox.setAlignment(Pos.CENTER);
-
-            Image waveIcon = AtlasManager.getInstance().getAtlas().getRegion("icon-wave");
-            ImageView waveView = new ImageView(waveIcon);
-            waveView.setFitWidth(16);
-            waveView.setFitHeight(16);
-            waveView.setPreserveRatio(true);
-
-            Label waveLabel = new Label(String.valueOf(wave));
-            waveLabel.setFont(Font.font("Roboto Light", 14));
-            waveLabel.setStyle("-fx-text-fill: white;");
-
-            waveBox.getChildren().addAll(waveView, waveLabel);
-            waveBox.setLayoutX(115);
-            waveBox.setLayoutY(120);
-
-            Label scoreLabel = new Label(formatNumber(score));
-            scoreLabel.setFont(Font.font("Roboto Light", 14));
-            scoreLabel.setStyle("-fx-text-fill: white;");
-            scoreLabel.setLayoutX(115);
-            scoreLabel.setLayoutY(95);
-
-            contentPane.getChildren().addAll(starsBox, waveBox, scoreLabel);
+            attachProgressBadges(contentPane, wave, score);
+            contentPane.getChildren().add(starsBox);
         } else {
             int totalStars = getTotalStarsEarned();
             int requiredStars = level.number * 2;
@@ -366,11 +351,12 @@ public class MapScreen {
         return card;
     }
 
-    private HBox createStarsDisplay(int earnedStars) {
+    private HBox createStarsDisplay(int earnedStars, int maxStars) {
         HBox starsBox = new HBox(3);
         starsBox.setAlignment(Pos.CENTER);
 
-        for (int i = 1; i <= 3; i++) {
+        int totalStars = Math.max(1, maxStars > 0 ? maxStars : 3);
+        for (int i = 1; i <= totalStars; i++) {
             Image starIcon = AtlasManager.getInstance().getAtlas().getRegion("icon-star");
             ImageView starView = new ImageView(starIcon);
             starView.setFitWidth(16);
@@ -400,6 +386,71 @@ public class MapScreen {
             return (number / 1000) + "." + ((number % 1000) / 100) + "K";
         }
         return String.valueOf(number);
+    }
+
+    private void attachProgressBadges(Pane contentPane, int wave, int score) {
+        HBox waveBox = new HBox(5);
+        waveBox.setAlignment(Pos.CENTER);
+
+        Image waveIcon = AtlasManager.getInstance().getAtlas().getRegion("icon-wave");
+        ImageView waveView = new ImageView(waveIcon);
+        waveView.setFitWidth(16);
+        waveView.setFitHeight(16);
+        waveView.setPreserveRatio(true);
+
+        Label waveLabel = new Label(String.valueOf(wave));
+        waveLabel.setFont(Font.font("Roboto Light", 14));
+        waveLabel.setStyle("-fx-text-fill: white;");
+
+        waveBox.getChildren().addAll(waveView, waveLabel);
+        waveBox.setLayoutX(115);
+        waveBox.setLayoutY(120);
+
+        Label scoreLabel = new Label(formatNumber(score));
+        scoreLabel.setFont(Font.font("Roboto Light", 14));
+        scoreLabel.setStyle("-fx-text-fill: white;");
+        scoreLabel.setLayoutX(115);
+        scoreLabel.setLayoutY(95);
+
+        contentPane.getChildren().addAll(waveBox, scoreLabel);
+    }
+
+    private ArrayList<WaveMilestone> loadWaveMilestones(String filename) {
+        ArrayList<WaveMilestone> milestones = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("WAVE_MILESTONE:")) {
+                    String[] parts = line.substring(15).split(":");
+                    if (parts.length == 2) {
+                        try {
+                            milestones.add(new WaveMilestone(
+                                    Integer.parseInt(parts[0].trim()),
+                                    Integer.parseInt(parts[1].trim())));
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+                } else if (line.equals("GRID:")) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error loading milestones for " + filename + ": " + e.getMessage());
+        }
+
+        if (milestones.isEmpty()) {
+            com.eliemichel.polyfinite.game.LevelData temp = new com.eliemichel.polyfinite.game.LevelData();
+            milestones.addAll(temp.getWaveMilestones());
+        }
+        return milestones;
+    }
+
+    private int getMaxStars(ArrayList<WaveMilestone> milestones) {
+        int total = 0;
+        for (WaveMilestone milestone : milestones) {
+            total += milestone.getStarsReward();
+        }
+        return total == 0 ? 3 : total;
     }
 
     private void playLevel(LevelData level) {

@@ -14,14 +14,20 @@ public class EndLevelScreen {
     private final int finalWave;
     private final int totalWaves;
     private final int finalScore;
+    private final int starsEarned;
     private StackPane overlay;
 
     public EndLevelScreen(Stage stage, SaveSlot currentSave, int finalWave, int totalWaves, int finalScore) {
+        this(stage, currentSave, finalWave, totalWaves, finalScore, 0);
+    }
+
+    public EndLevelScreen(Stage stage, SaveSlot currentSave, int finalWave, int totalWaves, int finalScore, int starsEarned) {
         this.stage = stage;
         this.currentSave = currentSave;
         this.finalWave = finalWave;
         this.totalWaves = totalWaves;
         this.finalScore = finalScore;
+        this.starsEarned = starsEarned;
         createOverlay();
     }
 
@@ -42,6 +48,9 @@ public class EndLevelScreen {
         Label scoreLabel = new Label("Final Score: " + finalScore);
         scoreLabel.setStyle("-fx-font-size: 20px; -fx-text-fill: white;");
 
+        Label starsLabel = new Label("Stars Earned: " + starsEarned);
+        starsLabel.setStyle("-fx-font-size: 20px; -fx-text-fill: #FFD700;");
+
         Button returnButton = new Button("RETURN TO LEVEL SELECT");
         returnButton.setPrefWidth(250);
         returnButton.setPrefHeight(50);
@@ -54,7 +63,7 @@ public class EndLevelScreen {
             mapScreen.show();
         });
 
-        contentBox.getChildren().addAll(titleLabel, waveLabel, scoreLabel, returnButton);
+        contentBox.getChildren().addAll(titleLabel, waveLabel, scoreLabel, starsLabel, returnButton);
         overlay.getChildren().add(contentBox);
     }
 
