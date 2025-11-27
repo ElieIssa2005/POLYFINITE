@@ -570,6 +570,36 @@ public class LevelCreator {
         mainBox.setPadding(new Insets(30));
         mainBox.setAlignment(Pos.TOP_CENTER);
 
+        // Milestone Section
+        VBox milestoneSection = createSection("STAR MILESTONES (reach these waves to earn stars)");
+        milestoneBox = new VBox(10);
+        milestoneFields = new ArrayList<>();
+
+        Label milestoneHint = new Label("Each level has exactly 3 stars. Set the wave for each star below.");
+        milestoneHint.setStyle("-fx-text-fill: #AAAAAA; -fx-font-size: 12px;");
+        milestoneBox.getChildren().add(milestoneHint);
+
+        int starIndex = 1;
+        for (WaveMilestone milestone : levelData.getWaveMilestones()) {
+            HBox row = new HBox(10);
+            row.setAlignment(Pos.CENTER_LEFT);
+
+            Label label = new Label("Star " + starIndex + " wave:");
+            label.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+            label.setPrefWidth(120);
+
+            TextField waveField = new TextField(String.valueOf(milestone.getWave()));
+            waveField.setPrefWidth(100);
+            milestoneFields.add(waveField);
+
+            row.getChildren().addAll(label, waveField);
+            milestoneBox.getChildren().add(row);
+            starIndex++;
+            if (starIndex > 3) break;
+        }
+
+        milestoneSection.getChildren().addAll(milestoneBox);
+
         // Spawn Density Section
         VBox densitySection = createSection("SPAWN DENSITY");
         HBox densityRow = new HBox(15);
