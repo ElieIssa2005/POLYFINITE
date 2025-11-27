@@ -246,11 +246,7 @@ public class LevelData {
     }
 
     public void setWaveMilestones(ArrayList<WaveMilestone> waveMilestones) {
-        if (waveMilestones == null) {
-            this.waveMilestones = new ArrayList<>();
-            return;
-        }
-        this.waveMilestones = new ArrayList<>(waveMilestones);
+        this.waveMilestones = WaveMilestone.normalize(waveMilestones);
     }
 
     public void addWaveMilestone(WaveMilestone milestone) {
@@ -262,19 +258,13 @@ public class LevelData {
 
     public static ArrayList<WaveMilestone> createDefaultMilestones() {
         ArrayList<WaveMilestone> defaults = new ArrayList<>();
-        defaults.add(new WaveMilestone(5, 1));
-        defaults.add(new WaveMilestone(10, 1));
-        defaults.add(new WaveMilestone(20, 1));
+        defaults.add(new WaveMilestone(5));
+        defaults.add(new WaveMilestone(10));
+        defaults.add(new WaveMilestone(20));
         return defaults;
     }
 
     public int getMaxStars() {
-        int total = 0;
-        if (waveMilestones != null) {
-            for (WaveMilestone milestone : waveMilestones) {
-                total += milestone.getStarsReward();
-            }
-        }
-        return total;
+        return 3;
     }
 }

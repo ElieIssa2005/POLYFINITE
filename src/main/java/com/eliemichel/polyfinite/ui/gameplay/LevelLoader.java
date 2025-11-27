@@ -87,15 +87,13 @@ public class LevelLoader {
                         questDefinitions.add(quest);
                     }
                 } else if (line.startsWith("WAVE_MILESTONE:")) {
-                    // Format: WAVE_MILESTONE:wave:stars
                     String[] parts = line.substring(15).split(":");
-                    if (parts.length == 2) {
-                        try {
+                    try {
+                        if (parts.length >= 1) {
                             int wave = Integer.parseInt(parts[0].trim());
-                            int stars = Integer.parseInt(parts[1].trim());
-                            waveMilestones.add(new WaveMilestone(wave, stars));
-                        } catch (NumberFormatException ignored) {
+                            waveMilestones.add(new WaveMilestone(wave));
                         }
+                    } catch (NumberFormatException ignored) {
                     }
                 } else if (line.equals("GRID:")) {
                     break;
@@ -126,9 +124,7 @@ public class LevelLoader {
             }
 
             // Apply milestones (keep defaults if none provided)
-            if (!waveMilestones.isEmpty()) {
-                levelData.setWaveMilestones(waveMilestones);
-            }
+            levelData.setWaveMilestones(waveMilestones);
 
             // Load grid
             for (int row = 0; row < gridHeight; row++) {
